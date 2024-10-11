@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head id="entire-document">
-    <title>Super Spinner</title>
+    <title>Name Spinner</title>
     <meta name="description" content="Generates random order of team member names">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- <link rel='manifest' href='./manifest.json'> -->
@@ -157,7 +157,7 @@
 </head>
 <body onload="">
     <div id="big-container" class="items">
-        <h2>Super Spinner</h2>
+        <h2>Name Spinner</h2>
         <div id="team" class="container"></div>
             <div id="members" class="container">
             </div>
@@ -380,7 +380,7 @@
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
             let outputText = "";
-            let outputHtml = `<h4>Super Spinner</h4>\n<ul>\n`;
+            let outputHtml = `<h4>Name Spinner</h4>\n<ul>\n`;
      
             for (let i = 0; i < members.length; i++) {
                 let child = members[i];
