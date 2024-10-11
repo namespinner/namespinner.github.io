@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head id="entire-document">
+    <title>Super Spinner</title>
+    <meta name="description" content="Generates random order of team member names">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel='manifest' href='./manifest.json'> -->
+    <style>
+        html {
+            width: 100%;
+            align-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        h2 {
+            text-align: center;
+            margin: 0;
+        }
+        a {
+            text-decoration: none;
+            color: black;
+        }
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0.5em;
+            
+        }
+        li {
+            padding: 5px 20px;
+            text-align: center;
+            border-radius: 1em;
+            border-width: 2px;
+            border-style: solid;
+            margin: 0.25em;
+        }
+        li.active {
+            background-color: lightyellow;
+            border-color: black;
+        }
+        li.inactive {
+            background-color: lightgrey;
+            color: #716b6b;
+            border-color: #716b6b;
+            text-decoration: line-through;
+        }
+        button {
+            margin: 0.5em 0.5em 0.5em 0;
+            padding: 0.5em;
+            background-color: skyblue;
+            border-radius: 1em;
+            border-width: 2px;
+            border-style: solid;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        button.halfbutton {
+            margin-left: 0;
+            border-radius: 0 1em 1em 0;
+        }
+        [class*='col-'] {
+            float: left;
+        }
+        div.items {
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 250px;
+            padding: 0.5em;
+            border-radius: 1em;
+            border-width: 2px;
+            border-style: solid;
+            border-color: black;
+            background-color: lightgrey;
+            width: auto;
+            display: block;
+        }
+        div.buttons {
+           margin: 5px;
+        }
+        div.buttons button {
+            float: left;
+            margin-left: 0.5em;
+        }
+        input {
+            margin: 0.5em;
+            padding: 0.5em;
+            border-radius: 1em;
+            border-style: solid;
+            border-color: black;
+            background-color: white;
+        }
+        input.halfbox {
+            width: 100px;
+            margin-right: 0;
+            border-radius: 1em 0 0 1em;
+            border-right-width: 0;
+        }
+        .box-and-button {
+            display: flex;
+        }
+        .member-row {
+            width: 250px;
+            height: 30px;
+            display:block;
+            margin: 5px;
+        }
+        .member-name {
+            margin-right: 0;
+            border-radius: 1em;
+            border-right-width: 0;
+            background-color: lightyellow;
+            border-color: black;
+            border-style: solid;
+            border-width: 2px;
+            width: 220px;
+            height: 20px;
+            float:left;
+            margin: 5px;
+            margin-right: 0;
+            padding: 5px;
+            padding-left: 15px;
+        }
+        .member-inactive {
+            background-color: #716b6b;
+        }
+        .remove-button {
+            margin-left: 0;
+            border-radius: 1em;
+            color: white;
+            background-color:skyblue;
+            border-color: black;
+            border-style: solid;
+            border-width: 2px;
+            width: 20px;
+            height: 20px;
+            float: right;
+            padding: 5px;
+            padding-top: 7px;
+            padding-bottom: 3px;
+            padding-left: 6px;
+            padding-right: 4px;
+            margin-top: -7px;
+            margin-right: -7px;
+            visibility: visible;
+            text-align: center;
+        }
+        .remove-button-hidden {
+            visibility: hidden;
+        }
+        .container {
+            
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            
+        }
+    </style>
+    
+</head>
+<body onload="">
+    <div id="big-container" class="items">
+        <h2>Super Spinner</h2>
+        <div id="team" class="container"></div>
+            <div id="members" class="container">
+            </div>
+            <div class="buttons">
+                <button onclick="spin();">Spin!</button>
+                <button onclick="copyMembersToClipboard();">Copy</button>
+                <button onclick="edit();">Edit</button>
+            </div>
+            <div class="container">
+                <form id="add-member-form" class="box-and-button" style="display: none;">
+                    <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
+                    <button id="add-member-button" class="halfbutton">Add</button>
+                    <button onclick="clearAll();">Clear All</button>
+                </form>
+            </div>
+        </div>
+    <script>
+        let query = new URLSearchParams(window.location.search);
+
+        if(!query.has("editing")) {
+            query.set("editing", "true");
+            history.pushState({}, "", "?"+query.toString());
+        }
+        
+        showHideEditing();
+        displayMembers();
+
+        function showHideEditing() {
+            let query = new URLSearchParams(window.location.search);
+
+            if(!query.has("editing") && !query.has("members") && !query.has("inactive")) {
+                showEditingForm("true");
+            } else if(query.has("editing")) {
+                showEditingForm(query.get("editing"));
+            } else {
+                showEditingForm("false");
+            }
+        }
+
+        function getQueryParamList(queryParameter) {
+            let query = new URLSearchParams(window.location.search);
+            
+            if(query.has(queryParameter)) {
+                return query.get(queryParameter).split("~");
+            } else {
+                return [];
+            }
+        }
+
+        function displayMembers() {
+            let members = getQueryParamList("members");
+            let inactive = getQueryParamList("inactive");
+            let query = new URLSearchParams(window.location.search);
+            let editing = (query.has("editing") && query.get("editing") == "true") ? "true" : "false";
+
+            let removeButtonClass = editing == "true" ? "remove-button" : "remove-button-hidden";
+
+            let div = document.getElementById("members");
+            div.innerHTML = '';
+            members.map(function (name) {
+                if(name) {
+                    div.innerHTML += `
+                        <div class="member-row active" onclick="setMemberInactive(event, '${name}');">
+                            <div class="member-name">
+                                ${name}
+                                <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>\n`;
+                }
+            });
+            inactive.map(function (name) {
+                if(name) {
+                    div.innerHTML += `
+                        <div class="member-row inactive" onclick="setMemberActive(event, '${name}');">
+                            <div class="member-name member-inactive">
+                                <strike>${name}</strike>
+                                <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>\n`;
+                }
+            });            
+        }
+
+        function spin() {
+            let query = new URLSearchParams(window.location.search);
+            query.set("editing", "false");
+            showEditingForm();
+
+            let activeMembers = [...document.querySelectorAll("div > div#members > div.active")]
+                .map(function (element) { 
+                    return element.innerText; 
+                });
+            
+            shuffle(activeMembers);
+
+            query.set("members", activeMembers.join("~"));
+            history.pushState({}, "", "?"+query.toString());
+
+            displayMembers();
+        }
+        
+        function shuffle(array) {
+            let currentIndex = array.length, temporaryValue, randomIndex;
+
+            // While there remain elements to shuffle...
+            while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+            }
+
+            return array;
+        }
+        
+        function clearAll() {
+            let query = new URLSearchParams(window.location.search);
+
+            query.delete("members");
+            query.delete("inactive");
+            query.set("editing", "true");
+
+            document.getElementById("add-member-name").focus();
+        }
+
+        function removeItem(query, queryParameter, item) {
+            if(query.has(queryParameter)) { 
+                let items = query.get(queryParameter).split("~");
+                let filtered = items.filter(f => f !== item);  
+                query.set(queryParameter, filtered.join("~"));
+            }
+        }
+        
+        function addItem(query, queryParameter, item) {
+            if(!item) return;
+
+            if(query.has(queryParameter)) { 
+                let items = query.get(queryParameter).split("~");
+                items.push(item);
+                query.set(queryParameter, items.join("~"));
+            } else {
+                query.set(queryParameter, item);
+            }
+        }
+
+        function setMemberActive(event, memberName) {
+            event.preventDefault()
+            let query = new URLSearchParams(window.location.search);            
+    
+            removeItem(query, "inactive", memberName);
+            addItem(query, "members", memberName);
+            
+            history.pushState({}, "", "?"+query.toString());
+            
+            displayMembers();
+        }
+
+        function setMemberInactive(event, memberName) {
+            event.preventDefault()
+            let query = new URLSearchParams(window.location.search);            
+  
+            removeItem(query, "members", memberName);
+            addItem(query, "inactive", memberName);
+            
+            history.pushState({}, "", "?"+query.toString());
+            
+            displayMembers();
+        }
+
+        function toggleMember(memberName) {
+            let query = new URLSearchParams(window.location.search);            
+
+            if(element.classList.contains('active')) {
+                element.classList.add('inactive');
+                element.classList.remove('active');
+
+                removeItem(query, "members", memberName);
+                addItem(query, "inactive", memberName);
+            } else {
+                element.classList.add('active');
+                element.classList.remove('inactive');
+
+                removeItem(query, "inactive", memberName);
+                addItem(query, "members", memberName );
+            }
+
+            history.pushState({}, "", "?"+query.toString());
+            
+            displayMembers();
+        }
+
+        function removeMember(event, memberName) {
+            event.stopPropagation();
+
+            let query = new URLSearchParams(window.location.search);            
+
+            removeItem(query, "members", memberName);
+            removeItem(query, "inactive", memberName);
+
+            history.pushState({}, "", "?"+query.toString());
+            
+            displayMembers();
+        }
+
+        function copyMembersToClipboard() {
+            let members = getQueryParamList("members");
+            let outputText = "";
+            let outputHtml = `<h4>Super Spinner</h4>\n<ul>\n`;
+     
+            for (let i = 0; i < members.length; i++) {
+                let child = members[i];
+                outputText += child + "\n";
+                outputHtml += "<li>" + child + "</li>\n";
+            }
+
+            outputHtml += `</ul><a href='${document.URL}'>spinner link</a>`;
+
+            // Copy the text and HTML to the clipboard
+            const html = new Blob([outputHtml], { type: "text/html" });
+            const text = new Blob([outputText], { type: "text/plain" });
+            const data = new ClipboardItem({ "text/html": html, "text/plain": text });
+            navigator.clipboard.write([data]);
+        }
+
+        window.addEventListener('popstate', () => {
+            displayMembers();
+            showHideEditing();
+        });
+
+        document.getElementById("add-member-button").addEventListener("click", function(event){
+            event.preventDefault()
+            
+            let query = new URLSearchParams(window.location.search);            
+            let memberName = document.getElementById("add-member-name");
+
+            addItem(query, "members", memberName.value);
+            
+            history.pushState({}, "", "?"+query.toString());
+
+            displayMembers();
+
+            memberName.value = "";
+            memberName.focus();
+        });
+
+        function edit() {
+            let query = new URLSearchParams(window.location.search);
+            
+            if(query.has("editing") && query.get("editing") == "true") { 
+                query.set("editing", "false");
+            } else if(query.has("editing") && query.get("editing") == "false") { 
+                query.set("editing", "true");
+            } else { 
+                query.set("editing", "false");
+            };
+            
+            document.getElementById("add-member-name").focus();
+            
+            history.pushState(null, "", "?"+query.toString());
+
+            showEditingForm(query.get("editing"));
+            displayMembers();
+        }
+
+        function showEditingForm(editing) {
+            let form = document.getElementById("add-member-form")
+            if(editing == "true") {
+                form.style.display = "flex";
+            } else {
+                form.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
