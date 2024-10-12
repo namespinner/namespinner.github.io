@@ -381,7 +381,7 @@
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
             let outputText = "";
-            let outputHtml = `<h4>Name Spinner</h4>\n<ul>\n`;
+            let outputHtml = `<h4>Name Spinner</h4>\n<ul>\n<p>${document.URL}</p>\n`;
      
             for (let i = 0; i < members.length; i++) {
                 let child = members[i];
@@ -389,11 +389,11 @@
                 outputHtml += "<li>" + child + "</li>\n";
             }
 
-            outputHtml += `</ul><a href='${document.URL}'>spinner link</a>`;
+            outputHtml += `</ul>`;
 
             // Copy the text and HTML to the clipboard
             const html = new Blob([outputHtml], { type: "text/html" });
-            const text = new Blob([outputText], { type: "text/plain" });
+            const text = new Blob([outputHtml], { type: "text/plain" });
             const data = new ClipboardItem({ "text/html": html, "text/plain": text });
             navigator.clipboard.write([data]);
         }
