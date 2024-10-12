@@ -2,7 +2,7 @@
 <html lang="en">
 <head id="entire-document">
     <title>Name Spinner</title>
-    <meta name="description" content="Generates random order of team member names">
+    <meta name="description" content="Save this link for next time.  Generates random order of team member names">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="mage/svg+xml" href="/shuffle.svg">
@@ -381,19 +381,19 @@
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
             let outputText = ``;
-            let outputHtml = `<div><h4>Name Spinner</h4>\n<p><a href="${document.URL}">link</a></p>\n`;
+            let outputHtml = `<h4>Name Spinner Results</h4>\n`;
      
             for (let i = 0; i < members.length; i++) {
                 let child = members[i];
                 outputText += child + "\n";
-                outputHtml += "<p>" + child + "</p>\n";
+                outputHtml += "<p style='padding:10px;'>" + child + "</p>\n";
             }
 
-            outputHtml += `</div>`;
+            outputHtml += `<p><a href="${document.URL}">link for next time</a></p>\n`;
 
             // Copy the text and HTML to the clipboard
             const html = new Blob([outputHtml], { type: "text/html" });
-            const text = new Blob([outputText], { type: "text/plain" });
+            const text = new Blob([outputHtml], { type: "text/plain" });
             const data = new ClipboardItem({ "text/html": html, "text/plain": text });
             navigator.clipboard.write([data]);
         }
