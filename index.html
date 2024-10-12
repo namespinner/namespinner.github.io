@@ -381,7 +381,7 @@
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
             let outputText = "";
-            let outputHtml = `<h4>Name Spinner</h4>\n<ul>\n<p>${document.URL}</p>\n`;
+            let outputHtml = `<h4>Name Spinner</h4>\n<ul>\n<p>Link: ${document.URL}</p>\n`;
      
             for (let i = 0; i < members.length; i++) {
                 let child = members[i];
