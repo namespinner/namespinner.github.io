@@ -393,7 +393,7 @@
 
             // Copy the text and HTML to the clipboard
             const html = new Blob([outputHtml], { type: "text/html" });
-            const text = new Blob([outputHtml], { type: "text/plain" });
+            const text = new Blob([outputText], { type: "text/plain" });
             const data = new ClipboardItem({ "text/html": html, "text/plain": text });
             navigator.clipboard.write([data]);
         }
