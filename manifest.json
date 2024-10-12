@@ -1,0 +1,19 @@
+{ 
+    "$schema": "https://json.schemastore.org/web-manifest-combined.json", 
+    "name": "Name Spinner (PWA)", 
+    "short_name": "Spinner", 
+    "display": "standalone", 
+    "scope": "/", 
+    "start_url": "/?pwa=1", 
+    "lang": "en-US", 
+    "icons": [ 
+        { 
+            "src": "./shuffle.svg", 
+            "type": "image/svg+xml", 
+            "sizes": "16x16", 
+            "purpose": "any" 
+        } 
+    ], 
+    "prefer_related_applications": true, 
+    "related_applications": [ ] 
+} 
