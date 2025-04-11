@@ -159,7 +159,17 @@
 </head>
 <body onload="">
     <div id="big-container" class="items">
-        <h2 id="header-title-text">Name Spinner</h2>
+        <h2 id="header-title-text" style="min-height: 10px;" onclick="editTitle();">Name Spinner</h2>
+        <div class="container">
+        <form id="change-title-form" class="box-and-button" style="display: none;">
+            <input id="change-title" class="halfbox" type="text" placeholder="Title" />
+            <button
+                onclick="changeTitle(event);"
+                id="change-title-button"
+                class="halfbutton">Change</button>
+            <button class="button" onclick="cancelChangeTitle();">Cancel</button>
+        </form>
+        </div>
         <div id="team" class="container"></div>
             <div id="members" class="container">
             </div>
@@ -172,7 +182,7 @@
                 <form id="add-member-form" class="box-and-button" style="display: none;">
                     <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
                     <button id="add-member-button" class="halfbutton">Add</button>
-                    <button onclick="clearAll();">Clear All</button>
+                    <button onclick="clearAll();">Clear All</button><br/>
                 </form>
             </div>
         </div>
@@ -210,9 +220,14 @@
         }
 
         function displayMembers() {
-            let title = getQueryParamList("title");
             let titleText = document.getElementById("title-text");
             let headerTitleText = document.getElementById("header-title-text");
+
+            let title = getQueryParamList("title");
+            if(!title || title.length == 0) {
+                title = headerTitleText.innerText;
+            }
+
             titleText.innerHTML = title;
             headerTitleText.innerHTML = title;
 
@@ -295,7 +310,7 @@
 
             return array;
         }
-        
+
         function clearAll() {
             let query = new URLSearchParams(window.location.search);
 
@@ -340,18 +355,18 @@
 
         function setMemberInactive(event, memberName) {
             event.preventDefault()
-            let query = new URLSearchParams(window.location.search);            
-  
+            let query = new URLSearchParams(window.location.search);
+
             removeItem(query, "members", memberName);
             addItem(query, "inactive", memberName);
-            
+
             history.pushState({}, "", "?"+query.toString());
-            
+
             displayMembers();
         }
 
         function toggleMember(memberName) {
-            let query = new URLSearchParams(window.location.search);            
+            let query = new URLSearchParams(window.location.search);
 
             if(element.classList.contains('active')) {
                 element.classList.add('inactive');
@@ -372,6 +387,17 @@
             displayMembers();
         }
 
+        function editTitle() {
+            let query = new URLSearchParams(window.location.search);
+
+            let changeTitleForm = document.getElementById("change-title-form");
+            let changeTitle = document.getElementById("change-title");
+            let headerTitleText = document.getElementById("header-title-text");
+            changeTitleForm.style.display = "flex";
+            headerTitleText.style.display = "none";
+            changeTitle.value = headerTitleText.innerText;
+        }
+
         function removeMember(event, memberName) {
             event.stopPropagation();
 
@@ -383,6 +409,38 @@
             history.pushState({}, "", "?"+query.toString());
             
             displayMembers();
+        }
+
+        function changeTitle(event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            let query = new URLSearchParams(window.location.search);
+            let newTitle = document.getElementById("change-title").value;
+
+            query.set("title", newTitle);
+    
+            history.pushState({}, "", "?"+query.toString());
+            
+            let changeTitleForm = document.getElementById("change-title-form");
+            let headerTitleText = document.getElementById("header-title-text");
+     
+            changeTitleForm.style.display = "none";
+            headerTitleText.style.display = null;
+
+            displayMembers();
+        }
+
+        function cancelChangeTitle() {
+            event.stopPropagation();
+            event.preventDefault();
+
+            let changeTitleForm = document.getElementById("change-title-form");
+            let headerTitleText = document.getElementById("header-title-text");
+
+            changeTitleForm.value = headerTitleText.innerText;
+            changeTitleForm.style.display = "none";
+            headerTitleText.style.display = null;
         }
 
         function copyMembersToClipboard() {
@@ -413,7 +471,7 @@
         document.getElementById("add-member-button").addEventListener("click", function(event){
             event.preventDefault()
             
-            let query = new URLSearchParams(window.location.search);            
+            let query = new URLSearchParams(window.location.search);
             let memberName = document.getElementById("add-member-name");
 
             addItem(query, "members", memberName.value);
@@ -446,7 +504,7 @@
         }
 
         function showEditingForm(editing) {
-            let form = document.getElementById("add-member-form")
+            let form = document.getElementById("add-member-form");
             if(editing == "true") {
                 form.style.display = "flex";
             } else {
