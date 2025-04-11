@@ -1,7 +1,8 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head id="entire-document">
-    <title>Name Spinner</title>
+    <title id="title-text">Name Spinner</title>
     <meta name="description" content="Save this link for next time.  Generates random order of team member names">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="manifest" href="./manifest.json">
@@ -158,7 +159,7 @@
 </head>
 <body onload="">
     <div id="big-container" class="items">
-        <h2>Name Spinner</h2>
+        <h2 id="header-title-text">Name Spinner</h2>
         <div id="team" class="container"></div>
             <div id="members" class="container">
             </div>
@@ -209,6 +210,12 @@
         }
 
         function displayMembers() {
+            let title = getQueryParamList("title");
+            let titleText = document.getElementById("title-text");
+            let headerTitleText = document.getElementById("header-title-text");
+            titleText.innerHTML = title;
+            headerTitleText.innerHTML = title;
+
             let members = getQueryParamList("members");
             let inactive = getQueryParamList("inactive");
             let query = new URLSearchParams(window.location.search);
