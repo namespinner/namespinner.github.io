@@ -35,9 +35,23 @@
             border-style: solid;
             margin: 0.25em;
         }
+        li.dragover {
+            border-top-style: dashed;
+            border-top-width: 3px;
+        }
         li.active {
             background-color: lightyellow;
             border-color: black;
+        }
+        div.member-row.dragging {
+            opacity: 0.4;
+            border-top-style: dashed;
+            border-top-width: 3px;
+        }
+        div.member-row.dragover {
+            border-bottom-style: dashed;
+            border-bottom-width: 3px;
+            border-bottom-color: #1a7f37;
         }
         li.inactive {
             background-color: lightgrey;
@@ -240,10 +254,10 @@
 
             let div = document.getElementById("members");
             div.innerHTML = '';
-            members.map(function (name) {
+            members.map(function (name, index) {
                 if(name) {
                     div.innerHTML += `
-                        <div class="member-row active" onclick="setMemberInactive(event, '${name}');">
+                        <div class="member-row active" draggable="${editing == 'true'}" data-index="${index}" onclick="setMemberInactive(event, '${name}');">
                             <div class="member-name">
                                 ${name}
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
@@ -256,10 +270,10 @@
                         </div>\n`;
                 }
             });
-            inactive.map(function (name) {
+            inactive.map(function (name, index) {
                 if(name) {
                     div.innerHTML += `
-                        <div class="member-row inactive" onclick="setMemberActive(event, '${name}');">
+                        <div class="member-row inactive" draggable="${editing == 'true'}" data-index="${members.length + index}" onclick="setMemberActive(event, '${name}');">
                             <div class="member-name member-inactive">
                                 <strike>${name}</strike>
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
@@ -274,14 +288,59 @@
             });            
         }
 
+        // ponytail: native HTML5 drag events, reorder only in edit mode. Drop target stored on the element.
+        let dropTarget = null;
+
+        document.addEventListener('dragstart', (e) => {
+            let row = e.target.closest('div.member-row');
+            if (!row || row.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
+            dropTarget = row;
+            row.classList.add('dragging');
+        });
+
+        document.addEventListener('dragover', (e) => {
+            let row = e.target.closest('div.member-row');
+            if (!row || row.getAttribute('draggable') !== 'true') { return; }
+            e.preventDefault();
+            // Drop indicator: underline the row we'd land on.
+            document.querySelectorAll('div.member-row.dragover').forEach(el => el.classList.remove('dragover'));
+            row.classList.add('dragover');
+            if (dropTarget && row !== dropTarget && !dropTarget.classList.contains('dragging')) {
+                if (dropTarget.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    dropTarget.parentNode.insertBefore(row, dropTarget.nextSibling);
+                } else {
+                    dropTarget.parentNode.insertBefore(row, dropTarget);
+                }
+                dropTarget = row;
+            }
+        });
+
+        document.addEventListener('dragend', (e) => {
+            let row = e.target.closest('div.member-row');
+            if (!row) { return; }
+            row.classList.remove('dragging');
+            document.querySelectorAll('div.member-row.dragging').forEach(el => el.classList.remove('dragging'));
+            document.querySelectorAll('div.member-row.dragover').forEach(el => el.classList.remove('dragover'));
+
+            if (dropTarget) {
+                let query = new URLSearchParams(window.location.search);
+                let active = [...document.querySelectorAll("div#members > div.active")].map(el => el.innerText);
+                let inactives = [...document.querySelectorAll("div#members > div.inactive")].map(el => el.innerText);
+                query.set("members", active.join("~"));
+                query.set("inactive", inactives.join("~"));
+                history.pushState({}, "", "?"+query.toString());
+            }
+            dropTarget = null;
+        });
+
         function spin() {
             let query = new URLSearchParams(window.location.search);
             query.set("editing", "false");
             showEditingForm();
 
-            let activeMembers = [...document.querySelectorAll("div > div#members > div.active")]
+            let activeMembers = [...document.querySelectorAll("div#members > div.active")]
                 .map(function (element) { 
-                    return element.innerText; 
+                    return element.innerText.replace(/\s+$/,''); 
                 });
             
             shuffle(activeMembers);
