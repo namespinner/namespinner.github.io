@@ -44,14 +44,27 @@
             border-color: black;
         }
         div.member-row.dragging {
-            opacity: 0.4;
-            border-top-style: dashed;
-            border-top-width: 3px;
+            opacity: 0.3;
         }
         div.member-row.dragover {
-            border-bottom-style: dashed;
-            border-bottom-width: 3px;
-            border-bottom-color: #1a7f37;
+            border-top-style: dashed;
+            border-top-width: 3px;
+            border-top-color: #1a7f37;
+        }
+        /* ponytail: ghost clone follows the cursor so dragged name stays visible */
+        div.member-row.ghost {
+            position: fixed;
+            pointer-events: none;
+            opacity: 0.9;
+            z-index: 1000;
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        /* ponytail: placeholder marks drop slot and stays put while dragging */
+        div.member-row.placeholder {
+            outline: 2px dashed #1a7f37;
+            outline-offset: 4px;
+            opacity: 0.3;
         }
         li.inactive {
             background-color: lightgrey;
@@ -288,50 +301,124 @@
             });            
         }
 
-        // ponytail: native HTML5 drag events, reorder only in edit mode. Drop target stored on the element.
-        let dropTarget = null;
+        // ponytail: HTML5 drag to reorder, only in edit mode. A ghost clone follows the
+        // cursor (so the dragged name stays visible) and a placeholder marks the drop slot.
+        let draggedRow = null;
 
         document.addEventListener('dragstart', (e) => {
             let row = e.target.closest('div.member-row');
             if (!row || row.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
-            dropTarget = row;
+            draggedRow = row;
             row.classList.add('dragging');
-        });
-
-        document.addEventListener('dragover', (e) => {
-            let row = e.target.closest('div.member-row');
-            if (!row || row.getAttribute('draggable') !== 'true') { return; }
-            e.preventDefault();
-            // Drop indicator: underline the row we'd land on.
-            document.querySelectorAll('div.member-row.dragover').forEach(el => el.classList.remove('dragover'));
-            row.classList.add('dragover');
-            if (dropTarget && row !== dropTarget && !dropTarget.classList.contains('dragging')) {
-                if (dropTarget.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING) {
-                    dropTarget.parentNode.insertBefore(row, dropTarget.nextSibling);
-                } else {
-                    dropTarget.parentNode.insertBefore(row, dropTarget);
-                }
-                dropTarget = row;
-            }
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(row.dataset.index));
         });
 
         document.addEventListener('dragend', (e) => {
             let row = e.target.closest('div.member-row');
             if (!row) { return; }
             row.classList.remove('dragging');
+            clearDragStyles();
+            removeGhost();
+            removePlaceholder();
+        });
+
+        // ponytail: a single live 'drag' listener drives both the ghost follow
+        // and the placeholder; 'drag' fires continuously so we can track the cursor
+        // and position the indicator even when the mouse isn't moving over a new row.
+        document.addEventListener('drag', (e) => {
+            if (!draggedRow) { return; }
+            moveGhost(e.clientX, e.clientY);
+            updatePlaceholder(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('dragover', (e) => { e.preventDefault(); });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!draggedRow) { return; }
+            removeGhost();
+            removePlaceholder();
+            persistOrder();
+            clearDragStyles();
+            draggedRow = null;
+        });
+
+        function clearDragStyles() {
             document.querySelectorAll('div.member-row.dragging').forEach(el => el.classList.remove('dragging'));
             document.querySelectorAll('div.member-row.dragover').forEach(el => el.classList.remove('dragover'));
+            document.querySelectorAll('div.member-row.placeholder').forEach(el => el.classList.remove('placeholder'));
+        }
 
-            if (dropTarget) {
-                let query = new URLSearchParams(window.location.search);
-                let active = [...document.querySelectorAll("div#members > div.active")].map(el => el.innerText);
-                let inactives = [...document.querySelectorAll("div#members > div.inactive")].map(el => el.innerText);
-                query.set("members", active.join("~"));
-                query.set("inactive", inactives.join("~"));
-                history.pushState({}, "", "?"+query.toString());
+        // ponytail: reuse the visible row as the ghost instead of re-rendering the name.
+        function moveGhost(clientX, clientY) {
+            let ghost = document.querySelector('div.member-row.ghost');
+            if (!ghost) {
+                ghost = draggedRow.cloneNode(true);
+                ghost.classList.remove('dragging');
+                ghost.classList.add('ghost');
+                draggedRow.parentNode.insertBefore(ghost, draggedRow);
             }
-            dropTarget = null;
-        });
+            ghost.style.left = clientX + 'px';
+            ghost.style.top = clientY + 'px';
+        }
+
+        function removeGhost() {
+            let ghost = document.querySelector('div.member-row.ghost');
+            if (ghost) { ghost.remove(); }
+        }
+
+        // ponytail: pick the slot whose midpoint the cursor is above.
+        function updatePlaceholder(clientX, clientY) {
+            let rows = [...document.querySelectorAll('div#members > div.member-row:not(.dragging):not(.ghost)')];
+            let insertIndex = rows.length;
+            for (let i = 0; i < rows.length; i++) {
+                if (clientY < rows[i].getBoundingClientRect().bottom) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+            rows.forEach(r => r.classList.remove('dragover'));
+            if (insertIndex < rows.length) {
+                rows[insertIndex].classList.add('dragover');
+                removePlaceholder();
+            } else {
+                appendPlaceholderRow();
+            }
+        }
+
+        function appendPlaceholderRow() {
+            // ponytail: a single spacer keeps list height steady when the cursor is below
+            // the last row, so names don't jump as you drag toward the end.
+            if (document.querySelector('div.member-row.placeholder')) { return; }
+            let placeholder = document.createElement('div');
+            placeholder.className = 'member-row placeholder';
+            document.getElementById('members').appendChild(placeholder);
+        }
+
+        function removePlaceholder() {
+            let placeholder = document.querySelector('div.member-row.placeholder');
+            if (placeholder) { placeholder.remove(); }
+        }
+
+        // ponytail: after drop, move the dragged row in front of the marked drop slot,
+        // then read the new order back into the URL so the reorder persists.
+        function persistOrder() {
+            let container = document.getElementById('members');
+            let over = container.querySelector('div.member-row.dragover');
+            container.insertBefore(draggedRow, over || null);
+
+            let query = new URLSearchParams(window.location.search);
+            let active = [...container.querySelectorAll('div.active:not(.ghost):not(.placeholder)')].map(el => stripName(el));
+            let inactives = [...container.querySelectorAll('div.inactive:not(.ghost):not(.placeholder)')].map(el => stripName(el));
+            query.set("members", active.join("~"));
+            query.set("inactive", inactives.join("~"));
+            history.pushState({}, "", "?"+query.toString());
+        }
+
+        function stripName(el) {
+            return el.innerText.trim().replace(/\s+$/, '');
+        }
 
         function spin() {
             let query = new URLSearchParams(window.location.search);
