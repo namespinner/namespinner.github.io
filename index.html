@@ -172,10 +172,19 @@
             flex-direction: column;
             
         }
+        #version {
+            position: fixed;
+            top: 4px;
+            right: 6px;
+            font-size: 9px;
+            color: #999;
+            pointer-events: none;
+        }
     </style>
     
 </head>
 <body onload="">
+    <div id="version">v0.1.2</div>
     <div id="big-container" class="items">
         <h2 id="header-title-text" style="min-height: 10px;" onclick="editTitle();">Name Spinner</h2>
         <div class="container">
