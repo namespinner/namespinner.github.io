@@ -51,15 +51,6 @@
             border-top-width: 3px;
             border-top-color: #1a7f37;
         }
-        /* ponytail: ghost clone follows the cursor so dragged name stays visible */
-        div.member-row.ghost {
-            position: fixed;
-            pointer-events: none;
-            opacity: 0.9;
-            z-index: 1000;
-            transform: translate(-50%, -50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
         /* ponytail: placeholder marks drop slot and stays put while dragging */
         div.member-row.placeholder {
             outline: 2px dashed #1a7f37;
@@ -301,45 +292,40 @@
             });            
         }
 
-        // ponytail: HTML5 drag to reorder, only in edit mode. A ghost clone follows the
-        // cursor (so the dragged name stays visible) and a placeholder marks the drop slot.
+        // ponytail: HTML5 drag to reorder, only in edit mode. The browser's native drag
+        // image follows the cursor; a dashed line (or trailing spacer) marks the drop slot.
         let draggedRow = null;
 
         document.addEventListener('dragstart', (e) => {
             let row = e.target.closest('div.member-row');
             if (!row || row.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
             draggedRow = row;
-            row.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', String(row.dataset.index));
+            // ponytail: fade the row after the browser snapshots it, so the drag image isn't faded too
+            setTimeout(() => row.classList.add('dragging'), 0);
         });
 
-        document.addEventListener('dragend', (e) => {
-            let row = e.target.closest('div.member-row');
-            if (!row) { return; }
-            row.classList.remove('dragging');
+        document.addEventListener('dragend', () => {
             clearDragStyles();
-            removeGhost();
             removePlaceholder();
+            draggedRow = null;
         });
 
-        // ponytail: a single live 'drag' listener drives both the ghost follow
-        // and the placeholder; 'drag' fires continuously so we can track the cursor
-        // and position the indicator even when the mouse isn't moving over a new row.
-        document.addEventListener('drag', (e) => {
+        // ponytail: dragover carries real cursor coordinates in every browser
+        // ('drag' reports 0,0 in Firefox), so the drop slot is tracked here.
+        document.addEventListener('dragover', (e) => {
             if (!draggedRow) { return; }
-            moveGhost(e.clientX, e.clientY);
-            updatePlaceholder(e.clientX, e.clientY);
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            updatePlaceholder(e.clientY);
         });
-
-        document.addEventListener('dragover', (e) => { e.preventDefault(); });
 
         document.addEventListener('drop', (e) => {
-            e.preventDefault();
             if (!draggedRow) { return; }
-            removeGhost();
-            removePlaceholder();
+            e.preventDefault();
             persistOrder();
+            removePlaceholder();
             clearDragStyles();
             draggedRow = null;
         });
@@ -347,33 +333,15 @@
         function clearDragStyles() {
             document.querySelectorAll('div.member-row.dragging').forEach(el => el.classList.remove('dragging'));
             document.querySelectorAll('div.member-row.dragover').forEach(el => el.classList.remove('dragover'));
-            document.querySelectorAll('div.member-row.placeholder').forEach(el => el.classList.remove('placeholder'));
         }
 
-        // ponytail: reuse the visible row as the ghost instead of re-rendering the name.
-        function moveGhost(clientX, clientY) {
-            let ghost = document.querySelector('div.member-row.ghost');
-            if (!ghost) {
-                ghost = draggedRow.cloneNode(true);
-                ghost.classList.remove('dragging');
-                ghost.classList.add('ghost');
-                draggedRow.parentNode.insertBefore(ghost, draggedRow);
-            }
-            ghost.style.left = clientX + 'px';
-            ghost.style.top = clientY + 'px';
-        }
-
-        function removeGhost() {
-            let ghost = document.querySelector('div.member-row.ghost');
-            if (ghost) { ghost.remove(); }
-        }
-
-        // ponytail: pick the slot whose midpoint the cursor is above.
-        function updatePlaceholder(clientX, clientY) {
-            let rows = [...document.querySelectorAll('div#members > div.member-row:not(.dragging):not(.ghost)')];
+        // ponytail: pick the first row whose midpoint is below the cursor; none means drop at the end.
+        function updatePlaceholder(clientY) {
+            let rows = [...document.querySelectorAll('div#members > div.member-row:not(.dragging):not(.placeholder)')];
             let insertIndex = rows.length;
             for (let i = 0; i < rows.length; i++) {
-                if (clientY < rows[i].getBoundingClientRect().bottom) {
+                let rect = rows[i].getBoundingClientRect();
+                if (clientY < rect.top + rect.height / 2) {
                     insertIndex = i;
                     break;
                 }
@@ -388,8 +356,7 @@
         }
 
         function appendPlaceholderRow() {
-            // ponytail: a single spacer keeps list height steady when the cursor is below
-            // the last row, so names don't jump as you drag toward the end.
+            // ponytail: a single spacer after the last row shows the "drop at end" slot.
             if (document.querySelector('div.member-row.placeholder')) { return; }
             let placeholder = document.createElement('div');
             placeholder.className = 'member-row placeholder';
@@ -405,12 +372,12 @@
         // then read the new order back into the URL so the reorder persists.
         function persistOrder() {
             let container = document.getElementById('members');
-            let over = container.querySelector('div.member-row.dragover');
+            let over = container.querySelector('div.member-row.dragover, div.member-row.placeholder');
             container.insertBefore(draggedRow, over || null);
 
             let query = new URLSearchParams(window.location.search);
-            let active = [...container.querySelectorAll('div.active:not(.ghost):not(.placeholder)')].map(el => stripName(el));
-            let inactives = [...container.querySelectorAll('div.inactive:not(.ghost):not(.placeholder)')].map(el => stripName(el));
+            let active = [...container.querySelectorAll('div.active:not(.placeholder)')].map(el => stripName(el));
+            let inactives = [...container.querySelectorAll('div.inactive:not(.placeholder)')].map(el => stripName(el));
             query.set("members", active.join("~"));
             query.set("inactive", inactives.join("~"));
             history.pushState({}, "", "?"+query.toString());
