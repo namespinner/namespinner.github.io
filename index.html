@@ -208,7 +208,7 @@
             <div class="buttons">
                 <button onclick="spin();">Spin!</button>
                 <button onclick="copyMembersToClipboard();">Copy</button>
-                <button onclick="edit();">Edit</button>
+                <button id="edit-button" onclick="edit();">Edit</button>
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
@@ -695,10 +695,13 @@
 
         function showEditingForm(editing) {
             let form = document.getElementById("add-member-form");
+            let editButton = document.getElementById("edit-button");
             if(editing == "true") {
                 form.style.display = "flex";
+                editButton.innerText = "View Mode";
             } else {
                 form.style.display = "none";
+                editButton.innerText = "Edit";
             }
         }
     </script>
