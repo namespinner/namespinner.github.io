@@ -225,6 +225,59 @@
             });
         }
 
+        // Mirror members/inactive/title to localStorage on every URL state
+        // change, and hydrate from it when opening with no state in the URL.
+        const STORAGE_KEY = "nameSpinnerState";
+
+        function saveToStorage() {
+            let query = new URLSearchParams(window.location.search);
+            let state = {
+                members: query.get("members") || "",
+                inactive: query.get("inactive") || "",
+                title: query.get("title") || ""
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                // storage unavailable (private browsing, quota, etc.) - ignore
+            }
+        }
+
+        function loadFromStorage() {
+            let query = new URLSearchParams(window.location.search);
+            if (query.has("members") || query.has("inactive") || query.has("title")) {
+                return;
+            }
+
+            let saved;
+            try {
+                saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            } catch (e) {
+                saved = null;
+            }
+            if (!saved) return;
+
+            if (saved.members) query.set("members", saved.members);
+            if (saved.inactive) query.set("inactive", saved.inactive);
+            if (saved.title) query.set("title", saved.title);
+
+            history.replaceState({}, "", "?" + query.toString());
+        }
+
+        const nativePushState = history.pushState.bind(history);
+        history.pushState = function(...args) {
+            nativePushState(...args);
+            saveToStorage();
+        };
+
+        const nativeReplaceState = history.replaceState.bind(history);
+        history.replaceState = function(...args) {
+            nativeReplaceState(...args);
+            saveToStorage();
+        };
+
+        loadFromStorage();
+
         let query = new URLSearchParams(window.location.search);
 
         if(!query.has("editing")) {
