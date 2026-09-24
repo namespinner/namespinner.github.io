@@ -1,19 +1,28 @@
-{ 
-    "$schema": "https://json.schemastore.org/web-manifest-combined.json", 
-    "name": "Name Spinner (PWA)", 
-    "short_name": "Spinner", 
-    "display": "standalone", 
-    "scope": "/", 
-    "start_url": "/?pwa=1", 
-    "lang": "en-US", 
-    "icons": [ 
-        { 
-            "src": "./shuffle.svg", 
-            "type": "image/svg+xml", 
-            "sizes": "16x16", 
-            "purpose": "any" 
-        } 
-    ], 
-    "prefer_related_applications": true, 
-    "related_applications": [ ] 
-} 
+{
+    "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+    "name": "Name Spinner (PWA)",
+    "short_name": "Spinner",
+    "description": "Randomly order a list of team member names, stored entirely in the URL so results can be bookmarked and shared.",
+    "display": "standalone",
+    "scope": "/",
+    "start_url": "/?pwa=1",
+    "lang": "en-US",
+    "theme_color": "#87ceeb",
+    "background_color": "#d3d3d3",
+    "icons": [
+        {
+            "src": "./icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any",
+            "purpose": "any"
+        },
+        {
+            "src": "./icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any",
+            "purpose": "maskable"
+        }
+    ],
+    "prefer_related_applications": true,
+    "related_applications": [ ]
+}
