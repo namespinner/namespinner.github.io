@@ -631,9 +631,13 @@
 
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
-            let outputText = ``;
-            let outputHtml = `<h4>Name Spinner Results</h4>\n`;
-     
+            let title = document.getElementById("header-title-text").innerText.trim();
+            let now = new Date();
+            let heading = `${title} ${now.getMonth() + 1}/${now.getDate()}`;
+
+            let outputText = `${heading}\n`;
+            let outputHtml = `<h4>${heading}</h4>\n`;
+
             for (let i = 0; i < members.length; i++) {
                 let child = members[i];
                 outputText += child + "\n";
