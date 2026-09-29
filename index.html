@@ -189,7 +189,7 @@
     
 </head>
 <body onload="">
-    <div id="version">v1.4.1</div>
+    <div id="version">v1.4.2</div>
     <div id="big-container" class="items">
         <h2 id="header-title-text" style="min-height: 10px;" onclick="editTitle();">Name Spinner</h2>
         <div class="container">
@@ -234,7 +234,8 @@
             let state = {
                 members: query.get("members") || "",
                 inactive: query.get("inactive") || "",
-                title: query.get("title") || ""
+                title: query.get("title") || "",
+                spun: query.get("spun") || ""
             };
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -260,6 +261,7 @@
             if (saved.members) query.set("members", saved.members);
             if (saved.inactive) query.set("inactive", saved.inactive);
             if (saved.title) query.set("title", saved.title);
+            if (saved.spun) query.set("spun", saved.spun);
 
             history.replaceState({}, "", "?" + query.toString());
         }
@@ -473,6 +475,7 @@
             shuffle(activeMembers);
 
             query.set("members", activeMembers.join("~"));
+            query.set("spun", new Date().toISOString());
             history.pushState({}, "", "?"+query.toString());
 
             displayMembers();
@@ -632,8 +635,11 @@
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
             let title = document.getElementById("header-title-text").innerText.trim();
-            let now = new Date();
-            let heading = `${title} ${now.getMonth() + 1}/${now.getDate()}`;
+            // Use the date of the last spin so a stale link shows its age
+            let spun = new URLSearchParams(window.location.search).get("spun");
+            let spunDate = spun ? new Date(spun) : new Date();
+            if (isNaN(spunDate)) spunDate = new Date();
+            let heading = `${title} ${spunDate.getMonth() + 1}/${spunDate.getDate()}`;
 
             let outputText = `${heading}\n`;
             let outputHtml = `<h4>${heading}</h4>\n`;
