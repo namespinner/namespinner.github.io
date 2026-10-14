@@ -163,6 +163,9 @@
         .member-inactive {
             background-color: #716b6b;
         }
+        .member-name.member-name-editing {
+            background-color: white;
+        }
         .remove-button {
             margin-left: 0;
             border-radius: 1em;
@@ -613,6 +616,7 @@
             input.addEventListener("blur", () => finish(true));
 
             row.setAttribute("draggable", "false");
+            nameDiv.classList.add("member-name-editing");
             nameDiv.replaceChild(input, label);
             input.focus();
             input.select();
