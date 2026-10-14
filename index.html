@@ -143,12 +143,22 @@
             padding: 5px;
             padding-left: 15px;
         }
+        /* Sized and borderless so the text sits exactly where the name was */
         .member-name-input {
-            width: 165px;
+            box-sizing: border-box;
+            width: 160px;
+            height: 20px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-bottom: 1px solid #888;
+            border-radius: 0;
+            background: transparent;
+            color: inherit;
             font: inherit;
-            padding: 0 4px;
-            border-radius: 0.5em;
-            border: 1px solid #888;
+            line-height: 20px;
+            vertical-align: top;
+            outline: none;
         }
         .member-inactive {
             background-color: #716b6b;
