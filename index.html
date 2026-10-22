@@ -197,6 +197,46 @@
             flex-direction: column;
             
         }
+        .member-face {
+            cursor: pointer;
+            margin-right: 0.3em;
+        }
+        .member-face-empty {
+            opacity: 0.35;
+        }
+        #face-set-form {
+            margin: 0 0.5em 0.5em 0.5em;
+        }
+        .face-picker {
+            position: fixed;
+            z-index: 10;
+            width: 230px;
+            padding: 0.5em;
+            border-radius: 1em;
+            border: 2px solid black;
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        .face-picker-grid {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .face-choice {
+            font-size: 1.4em;
+            padding: 2px;
+            cursor: pointer;
+            border-radius: 0.3em;
+        }
+        .face-choice:hover {
+            background-color: lightyellow;
+        }
+        .face-picker input {
+            width: 60px;
+            margin: 0.5em 0.5em 0 0;
+        }
+        .face-picker button {
+            margin: 0.5em 0.25em 0 0;
+        }
         #version {
             position: fixed;
             top: 4px;
@@ -209,7 +249,7 @@
     
 </head>
 <body onload="">
-    <div id="version">v1.4.3</div>
+    <div id="version">v1.5.0</div>
     <div id="big-container" class="items">
         <h2 id="header-title-text" style="min-height: 10px;" onclick="editTitle();">Name Spinner</h2>
         <div class="container">
@@ -229,6 +269,7 @@
                 <button onclick="spin();">Spin!</button>
                 <button onclick="copyMembersToClipboard();">Copy</button>
                 <button id="edit-button" onclick="edit();">Edit</button>
+                <button onclick="spinFaces();">Spin Faces</button>
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
@@ -236,8 +277,18 @@
                     <button id="add-member-button" class="halfbutton">Add</button>
                     <button onclick="clearAll();">Clear All</button><br/>
                 </form>
+                <form id="face-set-form" class="box-and-button" style="display: none;">
+                    <label for="face-set">Faces:
+                        <select id="face-set" onchange="changeFaceSet(this.value);">
+                            <option value="animals">Animals</option>
+                            <option value="food">Food</option>
+                            <option value="none">None</option>
+                        </select>
+                    </label>
+                </form>
             </div>
         </div>
+    <div id="face-picker" class="face-picker" style="display: none;"></div>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -255,7 +306,9 @@
                 members: query.get("members") || "",
                 inactive: query.get("inactive") || "",
                 title: query.get("title") || "",
-                spun: query.get("spun") || ""
+                spun: query.get("spun") || "",
+                faces: query.get("faces") || "",
+                faceset: query.get("faceset") || ""
             };
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -282,6 +335,8 @@
             if (saved.inactive) query.set("inactive", saved.inactive);
             if (saved.title) query.set("title", saved.title);
             if (saved.spun) query.set("spun", saved.spun);
+            if (saved.faces) query.set("faces", saved.faces);
+            if (saved.faceset) query.set("faceset", saved.faceset);
 
             history.replaceState({}, "", "?" + query.toString());
         }
@@ -296,6 +351,14 @@
         history.replaceState = function(...args) {
             nativeReplaceState(...args);
             saveToStorage();
+        };
+
+        // Faces: an emoji per member, stored in the URL as faces=Name=emoji~Name=emoji
+        // and drawn from the set named by faceset (animals, food, or none).
+        const FACE_SETS = {
+            animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦"],
+            food: ["🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🥑", "🥕", "🌽", "🥨", "🧀", "🍔", "🍟", "🍕", "🌮", "🍩", "🍪", "🧁", "🍦", "🍰", "🍫", "🍿", "🥐", "🥞", "🍣", "🍙"],
+            none: []
         };
 
         loadFromStorage();
@@ -350,15 +413,17 @@
             let editing = (query.has("editing") && query.get("editing") == "true") ? "true" : "false";
 
             let removeButtonClass = editing == "true" ? "remove-button" : "remove-button-hidden";
+            let faces = getFaces(query);
+            document.getElementById("face-set").value = getFaceSet(query);
 
             let div = document.getElementById("members");
             div.innerHTML = '';
             members.map(function (name, index) {
                 if(name) {
                     div.innerHTML += `
-                        <div class="member-row active" draggable="${editing == 'true'}" data-index="${index}" onclick="memberClicked(event, '${name}', 'members');">
+                        <div class="member-row active" draggable="${editing == 'true'}" data-name="${name}" data-index="${index}" onclick="memberClicked(event, '${name}', 'members');">
                             <div class="member-name">
-                                ${name}
+                                ${faceHtml(faces, name, editing)}${name}
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -372,9 +437,9 @@
             inactive.map(function (name, index) {
                 if(name) {
                     div.innerHTML += `
-                        <div class="member-row inactive" draggable="${editing == 'true'}" data-index="${members.length + index}" onclick="memberClicked(event, '${name}', 'inactive');">
+                        <div class="member-row inactive" draggable="${editing == 'true'}" data-name="${name}" data-index="${members.length + index}" onclick="memberClicked(event, '${name}', 'inactive');">
                             <div class="member-name member-inactive">
-                                <strike>${name}</strike>
+                                ${faceHtml(faces, name, editing)}<strike>${name}</strike>
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -479,7 +544,7 @@
         }
 
         function stripName(el) {
-            return el.innerText.trim().replace(/\s+$/, '');
+            return el.dataset.name;
         }
 
         function spin() {
@@ -488,9 +553,7 @@
             showEditingForm();
 
             let activeMembers = [...document.querySelectorAll("div#members > div.active")]
-                .map(function (element) { 
-                    return element.innerText.replace(/\s+$/,''); 
-                });
+                .map(stripName);
             
             shuffle(activeMembers);
 
@@ -591,7 +654,8 @@
             if(row.querySelector("input.member-name-input")) return;
 
             let nameDiv = row.querySelector("div.member-name");
-            let label = nameDiv.querySelector("strike") || nameDiv.firstChild;
+            // The face emoji comes first, so find the text node holding the name
+            let label = nameDiv.querySelector("strike") || [...nameDiv.childNodes].find(n => n.nodeType == Node.TEXT_NODE && n.textContent.trim());
             let input = document.createElement("input");
             input.type = "text";
             input.className = "member-name-input";
@@ -626,6 +690,12 @@
             let query = new URLSearchParams(window.location.search);
             let items = getQueryParamList(listParam).map(n => n === oldName ? newName : n);
             query.set(listParam, items.join("~"));
+            let faces = getFaces(query);
+            if(faces[oldName]) {
+                faces[newName] = faces[oldName];
+                delete faces[oldName];
+                setFaces(query, faces);
+            }
 
             history.pushState({}, "", "?"+query.toString());
 
@@ -672,6 +742,9 @@
 
             removeItem(query, "members", memberName);
             removeItem(query, "inactive", memberName);
+            let faces = getFaces(query);
+            delete faces[memberName];
+            setFaces(query, faces);
 
             history.pushState({}, "", "?"+query.toString());
             
@@ -712,6 +785,7 @@
 
         function copyMembersToClipboard() {
             let members = getQueryParamList("members");
+            let faces = getFaces(new URLSearchParams(window.location.search));
             let title = document.getElementById("header-title-text").innerText.trim();
             // Use the date of the last spin so a stale link shows its age
             let spun = new URLSearchParams(window.location.search).get("spun");
@@ -723,7 +797,7 @@
             let outputHtml = `<h4>${heading}</h4>\n`;
 
             for (let i = 0; i < members.length; i++) {
-                let child = members[i];
+                let child = faces[members[i]] ? `${faces[members[i]]} ${members[i]}` : members[i];
                 outputText += child + "\n";
                 outputHtml += "<p style='padding:10px;'>" + child + "</p>\n";
             }
@@ -749,6 +823,7 @@
             let memberName = document.getElementById("add-member-name");
 
             addItem(query, "members", memberName.value);
+            assignNewFace(query, memberName.value);
             
             history.pushState({}, "", "?"+query.toString());
 
@@ -780,6 +855,7 @@
         function showEditingForm(editing) {
             let form = document.getElementById("add-member-form");
             let editButton = document.getElementById("edit-button");
+            document.getElementById("face-set-form").style.display = editing == "true" ? "flex" : "none";
             if(editing == "true") {
                 form.style.display = "flex";
                 editButton.innerText = "View Mode";
@@ -788,6 +864,154 @@
                 editButton.innerText = "Edit";
             }
         }
+
+        function getFaceSet(query) {
+            let faceSet = query.get("faceset");
+            return FACE_SETS[faceSet] ? faceSet : "animals";
+        }
+
+        function getFaces(query) {
+            let faces = {};
+            if (!query.get("faces")) return faces;
+            query.get("faces").split("~").forEach(entry => {
+                // Split on the last "=" since an emoji never contains one
+                let at = entry.lastIndexOf("=");
+                if (at > 0) faces[entry.slice(0, at)] = entry.slice(at + 1);
+            });
+            return faces;
+        }
+
+        function setFaces(query, faces) {
+            let entries = Object.keys(faces).filter(name => faces[name]).map(name => `${name}=${faces[name]}`);
+            if (entries.length) {
+                query.set("faces", entries.join("~"));
+            } else {
+                query.delete("faces");
+            }
+        }
+
+        function faceHtml(faces, name, editing) {
+            if (faces[name]) {
+                return `<span class="member-face" onclick="openFacePicker(event, '${name}');">${faces[name]}</span>`;
+            }
+            if (editing == "true") {
+                return `<span class="member-face member-face-empty" onclick="openFacePicker(event, '${name}');">🙂</span>`;
+            }
+            return "";
+        }
+
+        function allMemberNames(query) {
+            return [...getQueryParamList("members"), ...getQueryParamList("inactive")].filter(name => name);
+        }
+
+        function randomizeFaces(query) {
+            let pool = shuffle([...FACE_SETS[getFaceSet(query)]]);
+            let faces = {};
+            if (pool.length) {
+                allMemberNames(query).forEach((name, i) => { faces[name] = pool[i % pool.length]; });
+            }
+            setFaces(query, faces);
+        }
+
+        function assignNewFace(query, name) {
+            let faces = getFaces(query);
+            let set = FACE_SETS[getFaceSet(query)];
+            if (!name || faces[name] || !set.length) return;
+            // Prefer a face nobody has yet
+            let used = Object.values(faces);
+            let unused = set.filter(face => !used.includes(face));
+            let pool = unused.length ? unused : set;
+            faces[name] = pool[Math.floor(Math.random() * pool.length)];
+            setFaces(query, faces);
+        }
+
+        function spinFaces() {
+            let query = new URLSearchParams(window.location.search);
+            if (getFaceSet(query) == "none") query.set("faceset", "animals");
+            randomizeFaces(query);
+            history.pushState({}, "", "?"+query.toString());
+            displayMembers();
+        }
+
+        function changeFaceSet(faceSet) {
+            let query = new URLSearchParams(window.location.search);
+            query.set("faceset", faceSet);
+            randomizeFaces(query);
+            history.pushState({}, "", "?"+query.toString());
+            displayMembers();
+        }
+
+        function setFace(name, face) {
+            let query = new URLSearchParams(window.location.search);
+            let faces = getFaces(query);
+            faces[name] = face;
+            setFaces(query, faces);
+            history.pushState({}, "", "?"+query.toString());
+            closeFacePicker();
+            displayMembers();
+        }
+
+        // Keep only the first character (grapheme) of a custom face, minus the URL delimiters
+        function firstGrapheme(text) {
+            text = text.replace(/[~=]/g, "").trim();
+            if (!text) return "";
+            if (window.Intl && Intl.Segmenter) {
+                return new Intl.Segmenter().segment(text)[Symbol.iterator]().next().value.segment;
+            }
+            return Array.from(text)[0];
+        }
+
+        let facePickerName = null;
+
+        function openFacePicker(event, name) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            let query = new URLSearchParams(window.location.search);
+            let set = FACE_SETS[getFaceSet(query)];
+            if (!set.length) set = FACE_SETS.animals;
+            let current = getFaces(query)[name] || "";
+            facePickerName = name;
+
+            let picker = document.getElementById("face-picker");
+            picker.innerHTML = `
+                <div class="face-picker-grid">
+                    ${set.map(face => `<span class="face-choice">${face}</span>`).join("")}
+                </div>
+                <form id="face-custom-form">
+                    <input id="face-custom" type="text" placeholder="Custom" value="${current}" />
+                    <button type="submit">Set</button>
+                    <button type="button" id="face-clear">Clear</button>
+                </form>`;
+            picker.querySelectorAll(".face-choice").forEach(el => {
+                el.addEventListener("click", () => setFace(facePickerName, el.textContent));
+            });
+            picker.querySelector("#face-custom-form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                setFace(facePickerName, firstGrapheme(document.getElementById("face-custom").value));
+            });
+            picker.querySelector("#face-clear").addEventListener("click", () => setFace(facePickerName, ""));
+
+            let rect = event.target.getBoundingClientRect();
+            picker.style.display = "block";
+            let left = Math.min(rect.left, window.innerWidth - picker.offsetWidth - 8);
+            let top = rect.bottom + 4;
+            if (top + picker.offsetHeight > window.innerHeight) top = Math.max(8, rect.top - picker.offsetHeight - 4);
+            picker.style.left = Math.max(8, left) + "px";
+            picker.style.top = top + "px";
+        }
+
+        function closeFacePicker() {
+            document.getElementById("face-picker").style.display = "none";
+            facePickerName = null;
+        }
+
+        document.addEventListener("click", (e) => {
+            if (facePickerName && !e.target.closest("#face-picker")) closeFacePicker();
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key == "Escape" && facePickerName) closeFacePicker();
+        });
     </script>
 </body>
 </html>
