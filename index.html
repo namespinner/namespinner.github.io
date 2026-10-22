@@ -77,11 +77,24 @@
             border-style: solid;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        /* Wide enough for "Copied ✓" so the buttons don't shift when it flashes */
         #share-button {
-            box-sizing: border-box;
-            min-width: 5.8em;
+            position: relative;
             transition: background-color 0.3s;
+        }
+        /* "Copied ✓" pops up above the button so its width never changes */
+        #share-button[data-flash]::after {
+            content: attr(data-flash);
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.15em 0.6em;
+            border-radius: 1em;
+            border: 1px solid black;
+            background-color: white;
+            font-size: 0.85em;
+            white-space: nowrap;
+            pointer-events: none;
         }
         #share-button.copied {
             background-color: #b6e3b6;
@@ -339,7 +352,7 @@
     
 </head>
 <body onload="">
-    <div id="version">v1.6.5</div>
+    <div id="version">v1.6.6</div>
     <div id="big-container" class="items">
         <a id="app-icon-link" href="https://github.com/namespinner/namespinner.github.io" target="_blank" rel="noopener" title="Name Spinner on GitHub" aria-label="Name Spinner on GitHub">
             <svg id="app-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="black" aria-hidden="true">
@@ -965,16 +978,16 @@
                 () => flashShareButton("Couldn't copy", "copy-failed"));
         }
 
-        // Briefly swap the Share button's label so it's clear the list was copied.
+        // Briefly flash the Share button and show a tag so it's clear the list was copied.
         let shareFlashTimer = null;
         function flashShareButton(label, className) {
             let button = document.getElementById("share-button");
             clearTimeout(shareFlashTimer);
             button.classList.remove("copied", "copy-failed");
-            button.innerText = label;
+            button.dataset.flash = label;
             button.classList.add(className);
             shareFlashTimer = setTimeout(() => {
-                button.innerText = "Share";
+                delete button.dataset.flash;
                 button.classList.remove(className);
             }, 1500);
         }
