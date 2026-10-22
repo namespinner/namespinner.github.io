@@ -59,6 +59,8 @@ Press **View Mode** when you're done.
    the **Spin!** button is called **Spin Names**.
 3. Click someone's face to pick a different one, or type any emoji in the
    **Custom** box and press **Set**. **Clear** removes it.
+4. When adding a name, the 🎲 button next to the **Name** box gives them
+   a random face. Click it first to pick their face instead.
 
 Choose **None** to turn faces off. You can also give someone a face by
 starting their name with an emoji, like "🐶 Alice"; the emoji is moved

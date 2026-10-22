@@ -233,6 +233,21 @@
             -webkit-appearance: none;
             background: skyblue url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='black'/%3E%3C/svg%3E") no-repeat right 0.75em center;
         }
+        /* Left end-cap of the Name box, mirroring the Add button on the right */
+        button.face-button {
+            margin: 0.5em 0 0.5em 0.5em;
+            padding: 0 0.2em 0 0.5em;
+            border-radius: 1em 0 0 1em;
+            border-color: black;
+            border-right-width: 0;
+            background-color: white;
+        }
+        button.face-button:not([style*="none"]) + input.halfbox {
+            width: 72px;
+            margin-left: 0;
+            border-radius: 0;
+            border-left-width: 0;
+        }
         .face-picker {
             position: fixed;
             z-index: 10;
@@ -293,7 +308,7 @@
     
 </head>
 <body onload="">
-    <div id="version">v1.6.2</div>
+    <div id="version">v1.6.3</div>
     <div id="big-container" class="items">
         <a id="app-icon-link" href="https://github.com/namespinner/namespinner.github.io" target="_blank" rel="noopener" title="Name Spinner on GitHub" aria-label="Name Spinner on GitHub">
             <svg id="app-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="black" aria-hidden="true">
@@ -323,6 +338,7 @@
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
+                    <button type="button" id="add-member-face" class="face-button" onclick="openNewFacePicker(event);" title="Face for the new name">🎲</button>
                     <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
                     <button id="add-member-button" class="halfbutton">Add</button>
                     <button type="button" onclick="clearAll();">Clear All</button><br/>
@@ -470,6 +486,7 @@
             let faceSet = getFaceSet(query);
             document.getElementById("face-set").value = faceSet;
             document.getElementById("spin-faces-button").style.display = faceSet == "none" ? "none" : "";
+            document.getElementById("add-member-face").style.display = faceSet == "none" ? "none" : "";
             document.getElementById("spin-button").innerText = faceSet == "none" ? "Spin!" : "Spin Names";
 
             let div = document.getElementById("members");
@@ -903,13 +920,15 @@
 
             let split = splitLeadingFace(memberName.value);
             addItem(query, "members", split.name);
-            if (split.face) {
+            let face = split.face || (getFaceSet(query) != "none" ? newMemberFace : "");
+            if (face) {
                 let faces = getFaces(query);
-                faces[split.name] = split.face;
+                faces[split.name] = face;
                 setFaces(query, faces);
             } else {
                 assignNewFace(query, split.name);
             }
+            setNewMemberFace("");
             
             history.pushState({}, "", "?"+query.toString());
 
@@ -1038,6 +1057,16 @@
             displayMembers();
         }
 
+        // The face picked for the next name added; empty means pick one at random
+        let newMemberFace = "";
+
+        function setNewMemberFace(face) {
+            newMemberFace = face;
+            let button = document.getElementById("add-member-face");
+            button.innerText = face || "🎲";
+            button.title = face ? "Face for the new name" : "Face for the new name (random)";
+        }
+
         // Keep only the first character (grapheme) of a custom face, minus the URL delimiters
         function firstGrapheme(text) {
             text = text.replace(/[~=]/g, "").trim();
@@ -1088,17 +1117,30 @@
             history.replaceState({}, "", "?"+query.toString());
         }
 
-        let facePickerName = null;
+        // Called with the chosen face while the picker is open
+        let facePickerOnPick = null;
 
         function openFacePicker(event, name) {
+            let current = getFaces(new URLSearchParams(window.location.search))[name] || "";
+            showFacePicker(event, current, "Clear", face => setFace(name, face));
+        }
+
+        function openNewFacePicker(event) {
+            showFacePicker(event, newMemberFace, "Random", face => {
+                setNewMemberFace(face);
+                closeFacePicker();
+                document.getElementById("add-member-name").focus();
+            });
+        }
+
+        function showFacePicker(event, current, clearLabel, onPick) {
             event.stopPropagation();
             event.preventDefault();
 
             let query = new URLSearchParams(window.location.search);
             let set = FACE_SETS[getFaceSet(query)];
             if (!set.length) set = FACE_SETS.animals;
-            let current = getFaces(query)[name] || "";
-            facePickerName = name;
+            facePickerOnPick = onPick;
 
             let picker = document.getElementById("face-picker");
             picker.innerHTML = `
@@ -1108,16 +1150,16 @@
                 <form id="face-custom-form">
                     <input id="face-custom" type="text" placeholder="Custom" value="${current}" />
                     <button type="submit">Set</button>
-                    <button type="button" id="face-clear">Clear</button>
+                    <button type="button" id="face-clear">${clearLabel}</button>
                 </form>`;
             picker.querySelectorAll(".face-choice").forEach(el => {
-                el.addEventListener("click", () => setFace(facePickerName, el.textContent));
+                el.addEventListener("click", () => facePickerOnPick(el.textContent));
             });
             picker.querySelector("#face-custom-form").addEventListener("submit", (e) => {
                 e.preventDefault();
-                setFace(facePickerName, firstGrapheme(document.getElementById("face-custom").value));
+                facePickerOnPick(firstGrapheme(document.getElementById("face-custom").value));
             });
-            picker.querySelector("#face-clear").addEventListener("click", () => setFace(facePickerName, ""));
+            picker.querySelector("#face-clear").addEventListener("click", () => facePickerOnPick(""));
 
             let rect = event.target.getBoundingClientRect();
             picker.style.display = "block";
@@ -1130,14 +1172,14 @@
 
         function closeFacePicker() {
             document.getElementById("face-picker").style.display = "none";
-            facePickerName = null;
+            facePickerOnPick = null;
         }
 
         document.addEventListener("click", (e) => {
-            if (facePickerName && !e.target.closest("#face-picker")) closeFacePicker();
+            if (facePickerOnPick && !e.target.closest("#face-picker")) closeFacePicker();
         });
         document.addEventListener("keydown", (e) => {
-            if (e.key == "Escape" && facePickerName) closeFacePicker();
+            if (e.key == "Escape" && facePickerOnPick) closeFacePicker();
         });
     </script>
 </body>
