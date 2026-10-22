@@ -270,12 +270,8 @@
             position: absolute;
             top: 0.6em;
             left: 0.6em;
-            width: 20px;
-            height: 20px;
-            padding: 4px;
-            border-radius: 0.5em;
-            border: 2px solid black;
-            background-color: skyblue;
+            width: 28px;
+            height: 28px;
         }
         /* The title form needs the full width, so the icon steps aside */
         #big-container:has(#change-title-form[style*="flex"]) #app-icon {
@@ -327,7 +323,7 @@
                 <form id="add-member-form" class="box-and-button" style="display: none;">
                     <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
                     <button id="add-member-button" class="halfbutton">Add</button>
-                    <button onclick="clearAll();">Clear All</button><br/>
+                    <button type="button" onclick="clearAll();">Clear All</button><br/>
                 </form>
                 <form id="face-set-form" class="box-and-button" style="display: none;">
                     <label for="face-set">Faces:
@@ -646,7 +642,13 @@
 
             query.delete("members");
             query.delete("inactive");
+            query.delete("faces");
+            query.delete("spun");
             query.set("editing", "true");
+
+            // pushState so Back brings the list back if this was a mistake
+            history.pushState({}, "", "?"+query.toString());
+            displayMembers();
 
             document.getElementById("add-member-name").focus();
         }
