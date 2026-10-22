@@ -283,7 +283,7 @@
                 <button onclick="spin();">Spin!</button>
                 <button onclick="copyMembersToClipboard();">Copy</button>
                 <button id="edit-button" onclick="edit();">Edit</button>
-                <button onclick="spinFaces();">Spin Faces</button>
+                <button id="spin-faces-button" onclick="spinFaces();">Spin Faces</button>
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
@@ -294,9 +294,9 @@
                 <form id="face-set-form" class="box-and-button" style="display: none;">
                     <label for="face-set">Faces:
                         <select id="face-set" onchange="changeFaceSet(this.value);">
+                            <option value="none">None</option>
                             <option value="animals">Animals</option>
                             <option value="food">Food</option>
-                            <option value="none">None</option>
                         </select>
                     </label>
                 </form>
@@ -370,7 +370,7 @@
         // Faces: an emoji per member, stored in the URL as faces=Name=emoji~Name=emoji
         // and drawn from the set named by faceset (animals, food, or none).
         const FACE_SETS = {
-            animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦"],
+            animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦", "🦓", "🦒", "🦌", "🐻‍❄️", "🐣", "🐥"],
             food: ["🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🥑", "🥕", "🌽", "🥨", "🧀", "🍔", "🍟", "🍕", "🌮", "🍩", "🍪", "🧁", "🍦", "🍰", "🍫", "🍿", "🥐", "🥞", "🍣", "🍙"],
             none: []
         };
@@ -428,7 +428,9 @@
 
             let removeButtonClass = editing == "true" ? "remove-button" : "remove-button-hidden";
             let faces = getFaces(query);
-            document.getElementById("face-set").value = getFaceSet(query);
+            let faceSet = getFaceSet(query);
+            document.getElementById("face-set").value = faceSet;
+            document.getElementById("spin-faces-button").style.display = faceSet == "none" ? "none" : "";
 
             let div = document.getElementById("members");
             div.innerHTML = '';
@@ -437,7 +439,7 @@
                     div.innerHTML += `
                         <div class="member-row active" draggable="${editing == 'true'}" data-name="${name}" data-index="${index}" onclick="memberClicked(event, '${name}', 'members');">
                             <div class="member-name">
-                                ${faceHtml(faces, name, editing)}${name}
+                                ${faceHtml(faces, name, editing, faceSet)}${name}
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -453,7 +455,7 @@
                     div.innerHTML += `
                         <div class="member-row inactive" draggable="${editing == 'true'}" data-name="${name}" data-index="${members.length + index}" onclick="memberClicked(event, '${name}', 'inactive');">
                             <div class="member-name member-inactive">
-                                ${faceHtml(faces, name, editing)}<strike>${name}</strike>
+                                ${faceHtml(faces, name, editing, faceSet)}<strike>${name}</strike>
                                 <div class="${removeButtonClass}" onclick="removeMember(event, '${name}');">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="black" class="bi bi-trash" viewBox="0 0 16 16">
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -881,7 +883,9 @@
 
         function getFaceSet(query) {
             let faceSet = query.get("faceset");
-            return FACE_SETS[faceSet] ? faceSet : "animals";
+            if (FACE_SETS[faceSet]) return faceSet;
+            // Links made before faceset existed defaulted to animals
+            return query.get("faces") ? "animals" : "none";
         }
 
         function getFaces(query) {
@@ -904,11 +908,11 @@
             }
         }
 
-        function faceHtml(faces, name, editing) {
+        function faceHtml(faces, name, editing, faceSet) {
             if (faces[name]) {
                 return `<span class="member-face" onclick="openFacePicker(event, '${name}');">${faces[name]}</span>`;
             }
-            if (editing == "true") {
+            if (editing == "true" && faceSet != "none") {
                 return `<span class="member-face member-face-empty" onclick="openFacePicker(event, '${name}');">🙂</span>`;
             }
             return "";
@@ -941,7 +945,6 @@
 
         function spinFaces() {
             let query = new URLSearchParams(window.location.search);
-            if (getFaceSet(query) == "none") query.set("faceset", "animals");
             randomizeFaces(query);
             history.pushState({}, "", "?"+query.toString());
             displayMembers();
