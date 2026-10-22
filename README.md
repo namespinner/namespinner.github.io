@@ -9,6 +9,12 @@ channel each time we spin it.
 
 Try it at https://namespinner.github.io
 
+<p>
+  <img src="screenshots/spun-list.png" alt="A spun list with animal faces and one person crossed out" width="260">
+  <img src="screenshots/edit-mode.png" alt="Edit mode with the Add box and Faces dropdown" width="260">
+  <img src="screenshots/face-picker.png" alt="Picking a face for someone" width="260">
+</p>
+
 ## What it does
 - Shuffles a list of names into a random order.
 - Lets you cross out people who are away so they're left out of the spin.
