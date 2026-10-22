@@ -370,12 +370,13 @@
         // Faces: an emoji per member, stored in the URL as faces=Name=emoji~Name=emoji
         // and drawn from the set named by faceset (animals, food, or none).
         const FACE_SETS = {
-            animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦", "🦓", "🦒", "🦌", "🐻‍❄️", "🐣", "🐥"],
+            animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦", "🦓", "🦒", "🦌", "🐻‍❄️", "🐣", "🐥", "🙈", "🙉", "🙊", "😺", "😸", "😻"],
             food: ["🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🥑", "🥕", "🌽", "🥨", "🧀", "🍔", "🍟", "🍕", "🌮", "🍩", "🍪", "🧁", "🍦", "🍰", "🍫", "🍿", "🥐", "🥞", "🍣", "🍙"],
             none: []
         };
 
         loadFromStorage();
+        moveLeadingFacesFromNames();
 
         let query = new URLSearchParams(window.location.search);
 
@@ -704,14 +705,15 @@
 
         function renameMember(listParam, oldName, newName) {
             let query = new URLSearchParams(window.location.search);
+            let split = splitLeadingFace(newName);
+            newName = split.name;
             let items = getQueryParamList(listParam).map(n => n === oldName ? newName : n);
             query.set(listParam, items.join("~"));
             let faces = getFaces(query);
-            if(faces[oldName]) {
-                faces[newName] = faces[oldName];
-                delete faces[oldName];
-                setFaces(query, faces);
-            }
+            let face = split.face || faces[oldName];
+            delete faces[oldName];
+            if(face) faces[newName] = face;
+            setFaces(query, faces);
 
             history.pushState({}, "", "?"+query.toString());
 
@@ -838,8 +840,15 @@
             let query = new URLSearchParams(window.location.search);
             let memberName = document.getElementById("add-member-name");
 
-            addItem(query, "members", memberName.value);
-            assignNewFace(query, memberName.value);
+            let split = splitLeadingFace(memberName.value);
+            addItem(query, "members", split.name);
+            if (split.face) {
+                let faces = getFaces(query);
+                faces[split.name] = split.face;
+                setFaces(query, faces);
+            } else {
+                assignNewFace(query, split.name);
+            }
             
             history.pushState({}, "", "?"+query.toString());
 
@@ -976,6 +985,46 @@
                 return new Intl.Segmenter().segment(text)[Symbol.iterator]().next().value.segment;
             }
             return Array.from(text)[0];
+        }
+
+        // Names typed before faces existed may start with an emoji, e.g. "🐶 Alice".
+        // Split that off so it can be stored as the member's face instead.
+        function splitLeadingFace(name) {
+            let first = firstGrapheme(name);
+            if (!first || !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(first)) {
+                return { name: name, face: "" };
+            }
+            let rest = name.trim().slice(first.length).trim();
+            if (!rest) return { name: name, face: "" };
+            return { name: rest, face: first };
+        }
+
+        function moveLeadingFacesFromNames() {
+            let query = new URLSearchParams(window.location.search);
+            let members = getQueryParamList("members");
+            let inactive = getQueryParamList("inactive");
+            let faces = getFaces(query);
+            let taken = new Set([...members, ...inactive]);
+            let changed = false;
+
+            function move(name) {
+                let split = splitLeadingFace(name);
+                // Leave it alone if the plain name is already on the list
+                if (!split.face || taken.has(split.name)) return name;
+                taken.add(split.name);
+                if (!faces[split.name]) faces[split.name] = split.face;
+                delete faces[name];
+                changed = true;
+                return split.name;
+            }
+            members = members.map(move);
+            inactive = inactive.map(move);
+            if (!changed) return;
+
+            if (query.has("members")) query.set("members", members.join("~"));
+            if (query.has("inactive")) query.set("inactive", inactive.join("~"));
+            setFaces(query, faces);
+            history.replaceState({}, "", "?"+query.toString());
         }
 
         let facePickerName = null;
