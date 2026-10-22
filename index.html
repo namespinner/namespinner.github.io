@@ -242,6 +242,11 @@
             border-right-width: 0;
             background-color: white;
         }
+        .face-button-icon {
+            width: 1.1em;
+            height: 1.1em;
+            vertical-align: middle;
+        }
         button.face-button:not([style*="none"]) + input.halfbox {
             width: 72px;
             margin-left: 0;
@@ -338,7 +343,7 @@
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
-                    <button type="button" id="add-member-face" class="face-button" onclick="openNewFacePicker(event);" title="Face for the new name">🎲</button>
+                    <button type="button" id="add-member-face" class="face-button" onclick="openNewFacePicker(event);" title="Face for the new name (random)"></button>
                     <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
                     <button id="add-member-button" class="halfbutton">Add</button>
                     <button type="button" onclick="clearAll();">Clear All</button><br/>
@@ -1063,9 +1068,15 @@
         function setNewMemberFace(face) {
             newMemberFace = face;
             let button = document.getElementById("add-member-face");
-            button.innerText = face || "🎲";
+            if (face) {
+                button.textContent = face;
+            } else {
+                // Random is shown with the app's shuffle icon
+                button.innerHTML = document.getElementById("app-icon").outerHTML.replace('id="app-icon"', 'class="face-button-icon"');
+            }
             button.title = face ? "Face for the new name" : "Face for the new name (random)";
         }
+        setNewMemberFace("");
 
         // Keep only the first character (grapheme) of a custom face, minus the URL delimiters
         function firstGrapheme(text) {
