@@ -242,16 +242,32 @@
             border-right-width: 0;
             background-color: white;
         }
-        .face-button-icon {
-            width: 1.1em;
-            height: 1.1em;
-            vertical-align: middle;
-        }
         button.face-button:not([style*="none"]) + input.halfbox {
             width: 72px;
             margin-left: 0;
             border-radius: 0;
             border-left-width: 0;
+        }
+        .confirm-dialog {
+            max-width: 260px;
+            padding: 1em 1.25em 0.5em 1.25em;
+            border-radius: 1em;
+            border: 2px solid black;
+            background-color: lightgrey;
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .confirm-dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.35);
+        }
+        .confirm-dialog h3 {
+            margin: 0 0 0.25em 0;
+        }
+        .confirm-dialog p {
+            margin: 0 0 0.5em 0;
+        }
+        button.danger-button {
+            background-color: #f3a6a6;
         }
         .face-picker {
             position: fixed;
@@ -263,9 +279,19 @@
             background-color: white;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
+        .face-picker-choices {
+            max-height: 240px;
+            overflow-y: auto;
+        }
         .face-picker-grid {
             display: flex;
             flex-wrap: wrap;
+        }
+        .face-picker-label {
+            margin: 0.4em 0 0.1em 0.2em;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #555;
         }
         .face-choice {
             font-size: 1.4em;
@@ -313,7 +339,7 @@
     
 </head>
 <body onload="">
-    <div id="version">v1.6.4</div>
+    <div id="version">v1.6.5</div>
     <div id="big-container" class="items">
         <a id="app-icon-link" href="https://github.com/namespinner/namespinner.github.io" target="_blank" rel="noopener" title="Name Spinner on GitHub" aria-label="Name Spinner on GitHub">
             <svg id="app-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="black" aria-hidden="true">
@@ -343,10 +369,10 @@
             </div>
             <div class="container">
                 <form id="add-member-form" class="box-and-button" style="display: none;">
-                    <button type="button" id="add-member-face" class="face-button" onclick="openNewFacePicker(event);" title="Face for the new name (random)"></button>
+                    <button type="button" id="add-member-face" class="face-button" onclick="openNewFacePicker(event);" title="Face for the new name"></button>
                     <input id="add-member-name" class="halfbox" type="text" placeholder="Name" />
                     <button id="add-member-button" class="halfbutton">Add</button>
-                    <button type="button" onclick="clearAll();">Clear All</button><br/>
+                    <button type="button" onclick="confirmClearAll();">Clear All</button><br/>
                 </form>
                 <form id="face-set-form" class="box-and-button" style="display: none;">
                     <label for="face-set">Faces:
@@ -355,12 +381,22 @@
                             <option value="animals">Animals</option>
                             <option value="critters">Critters</option>
                             <option value="food">Food</option>
+                            <option value="moods">Moods</option>
+                            <option value="all">All Categories</option>
                         </select>
                     </label>
                 </form>
             </div>
         </div>
     <div id="face-picker" class="face-picker" style="display: none;"></div>
+    <dialog id="clear-all-dialog" class="confirm-dialog">
+        <h3>Are you sure?</h3>
+        <p id="clear-all-message"></p>
+        <div class="confirm-dialog-buttons">
+            <button type="button" id="clear-all-cancel" onclick="document.getElementById('clear-all-dialog').close();" autofocus>Cancel</button>
+            <button type="button" class="danger-button" onclick="document.getElementById('clear-all-dialog').close(); clearAll();">Clear All</button>
+        </div>
+    </dialog>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -426,13 +462,20 @@
         };
 
         // Faces: an emoji per member, stored in the URL as faces=Name=emoji~Name=emoji
-        // and drawn from the set named by faceset (animals, critters, food, or none).
+        // and drawn from the set named by faceset (animals, critters, food, moods, all, or none).
         const FACE_SETS = {
             animals: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦉", "🐺", "🐴", "🦄", "🐲", "🐗", "🦝", "🐙", "🐢", "🐳", "🦔", "🦦", "🦓", "🦒", "🦌", "🐻‍❄️", "🐣", "🐥", "🙈", "🙉", "🙊", "😺", "😸", "😻"],
             critters: ["🐞", "🐝", "🦋", "🐌", "🐬", "🦭", "🐠", "🐡", "🦀", "🦑", "🪼", "🦩", "🦚", "🦜", "🦆", "🦢", "🐦", "🕊️", "🐿️", "🐇", "🦥", "🦘", "🦫", "🐘", "🦛", "🦙", "🐑", "🐐", "🦕", "🦖", "🐉", "🦇", "🦨", "🦡"],
             food: ["🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🥑", "🥕", "🌽", "🥨", "🧀", "🍔", "🍟", "🍕", "🌮", "🍩", "🍪", "🧁", "🍦", "🍰", "🍫", "🍿", "🥐", "🥞", "🍣", "🍙"],
+            moods: ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "🫠", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🫢", "🤫", "🤔", "🫡", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬", "😌", "😔", "😪", "😴", "🥱", "🤠", "🥳", "🥸", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "🥹", "😢", "😭", "😱", "😤", "😠", "🤯", "😵‍💫", "🤡", "👻", "👽", "🤖"],
             none: []
         };
+        const FACE_SET_LABELS = { animals: "Animals", critters: "Critters", food: "Food", moods: "Moods" };
+        FACE_SETS.all = [...new Set(Object.keys(FACE_SET_LABELS).flatMap(name => FACE_SETS[name]))];
+
+        // The face the next added name gets: picked at random, or chosen with the face button
+        let newMemberFace = "";
+        let newMemberFaceSet = "";
 
         loadFromStorage();
         moveLeadingFacesFromNames();
@@ -492,6 +535,9 @@
             document.getElementById("face-set").value = faceSet;
             document.getElementById("spin-faces-button").style.display = faceSet == "none" ? "none" : "";
             document.getElementById("add-member-face").style.display = faceSet == "none" ? "none" : "";
+            if (faceSet != "none" && (!newMemberFace || newMemberFaceSet != faceSet)) {
+                setNewMemberFace(randomFace(query), faceSet);
+            }
             document.getElementById("spin-button").innerText = faceSet == "none" ? "Spin!" : "Spin Names";
 
             let div = document.getElementById("members");
@@ -660,6 +706,27 @@
 
             return array;
         }
+
+        function confirmClearAll() {
+            let count = getQueryParamList("members").concat(getQueryParamList("inactive")).filter(name => name).length;
+            if (count == 0) {
+                clearAll();
+                return;
+            }
+            document.getElementById("clear-all-message").innerText = count == 1
+                ? "This removes the 1 name on the list."
+                : `This removes all ${count} names on the list.`;
+            let dialog = document.getElementById("clear-all-dialog");
+            dialog.showModal();
+            document.getElementById("clear-all-cancel").focus();
+        }
+
+        // A click on the dimmed area outside the dialog box cancels it
+        document.getElementById("clear-all-dialog").addEventListener("click", (e) => {
+            let box = e.target.getBoundingClientRect();
+            let outside = e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom;
+            if (e.target.id == "clear-all-dialog" && outside) e.target.close();
+        });
 
         function clearAll() {
             let query = new URLSearchParams(window.location.search);
@@ -930,10 +997,9 @@
                 let faces = getFaces(query);
                 faces[split.name] = face;
                 setFaces(query, faces);
-            } else {
-                assignNewFace(query, split.name);
             }
-            setNewMemberFace("");
+            // Line up a fresh random face for the next name
+            setNewMemberFace(randomFace(query), getFaceSet(query));
             
             history.pushState({}, "", "?"+query.toString());
 
@@ -1025,16 +1091,14 @@
             setFaces(query, faces);
         }
 
-        function assignNewFace(query, name) {
-            let faces = getFaces(query);
+        // A random face from the current set, preferring one nobody has yet
+        function randomFace(query) {
             let set = FACE_SETS[getFaceSet(query)];
-            if (!name || faces[name] || !set.length) return;
-            // Prefer a face nobody has yet
-            let used = Object.values(faces);
+            if (!set.length) return "";
+            let used = Object.values(getFaces(query));
             let unused = set.filter(face => !used.includes(face));
             let pool = unused.length ? unused : set;
-            faces[name] = pool[Math.floor(Math.random() * pool.length)];
-            setFaces(query, faces);
+            return pool[Math.floor(Math.random() * pool.length)];
         }
 
         function spinFaces() {
@@ -1062,21 +1126,11 @@
             displayMembers();
         }
 
-        // The face picked for the next name added; empty means pick one at random
-        let newMemberFace = "";
-
-        function setNewMemberFace(face) {
+        function setNewMemberFace(face, faceSet) {
             newMemberFace = face;
-            let button = document.getElementById("add-member-face");
-            if (face) {
-                button.textContent = face;
-            } else {
-                // Random is shown with the app's shuffle icon
-                button.innerHTML = document.getElementById("app-icon").outerHTML.replace('id="app-icon"', 'class="face-button-icon"');
-            }
-            button.title = face ? "Face for the new name" : "Face for the new name (random)";
+            newMemberFaceSet = faceSet;
+            document.getElementById("add-member-face").textContent = face;
         }
-        setNewMemberFace("");
 
         // Keep only the first character (grapheme) of a custom face, minus the URL delimiters
         function firstGrapheme(text) {
@@ -1138,7 +1192,8 @@
 
         function openNewFacePicker(event) {
             showFacePicker(event, newMemberFace, "Random", face => {
-                setNewMemberFace(face);
+                let query = new URLSearchParams(window.location.search);
+                setNewMemberFace(face || randomFace(query), getFaceSet(query));
                 closeFacePicker();
                 document.getElementById("add-member-name").focus();
             });
@@ -1149,14 +1204,22 @@
             event.preventDefault();
 
             let query = new URLSearchParams(window.location.search);
-            let set = FACE_SETS[getFaceSet(query)];
-            if (!set.length) set = FACE_SETS.animals;
+            let faceSet = getFaceSet(query);
+            if (faceSet == "none") faceSet = "animals";
+            // All Categories shows each category under its own heading
+            let groups = faceSet == "all"
+                ? Object.keys(FACE_SET_LABELS).map(name => [FACE_SET_LABELS[name], FACE_SETS[name]])
+                : [["", FACE_SETS[faceSet]]];
             facePickerOnPick = onPick;
 
             let picker = document.getElementById("face-picker");
             picker.innerHTML = `
-                <div class="face-picker-grid">
-                    ${set.map(face => `<span class="face-choice">${face}</span>`).join("")}
+                <div class="face-picker-choices">
+                    ${groups.map(([label, set]) => `
+                        ${label ? `<div class="face-picker-label">${label}</div>` : ""}
+                        <div class="face-picker-grid">
+                            ${set.map(face => `<span class="face-choice">${face}</span>`).join("")}
+                        </div>`).join("")}
                 </div>
                 <form id="face-custom-form">
                     <input id="face-custom" type="text" placeholder="Custom" value="${current}" />

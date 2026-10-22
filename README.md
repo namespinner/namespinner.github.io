@@ -18,7 +18,8 @@ Try it at https://namespinner.github.io
 ## What it does
 - Shuffles a list of names into a random order.
 - Lets you cross out people who are away so they're left out of the spin.
-- Can give each person a fun face emoji: animals, critters or food.
+- Can give each person a fun face emoji: animals, critters, food, moods,
+  or a mix of all of them.
 - Copies the spun list, with today's date and a link back, so you can
   paste it into chat.
 - Keeps everything in the link: the names, who's crossed out, the title,
@@ -38,8 +39,8 @@ In edit mode you can also:
 - **Rename** someone by clicking their name.
 - **Reorder** names by dragging them.
 - **Remove** someone with the trash can button.
-- **Clear All** to empty the list and start over (the browser's Back
-  button undoes it).
+- **Clear All** to empty the list and start over. It asks you to confirm
+  first, and the browser's Back button undoes it.
 
 Press **View Mode** when you're done.
 
@@ -53,14 +54,16 @@ Press **View Mode** when you're done.
   the date and a link for next time.
 
 ### Faces
-1. In edit mode, choose **Animals**, **Critters** or **Food** from the
-   **Faces** dropdown. Everyone gets a random face.
+1. In edit mode, choose **Animals**, **Critters**, **Food** or **Moods**
+   from the **Faces** dropdown. Everyone gets a random face.
+   **All Categories** mixes faces from all of them.
 2. Press **Spin Faces** to give everyone new random faces. With faces on,
    the **Spin!** button is called **Spin Names**.
 3. Click someone's face to pick a different one, or type any emoji in the
    **Custom** box and press **Set**. **Clear** removes it.
-4. When adding a name, the shuffle button next to the **Name** box gives
-   them a random face. Click it first to pick their face instead.
+4. When adding a name, the face at the start of the **Name** box is the
+   random face they'll get. Click it to pick a different one. After each
+   **Add** a new random face is ready for the next name.
 
 Choose **None** to turn faces off. You can also give someone a face by
 starting their name with an emoji, like "🐶 Alice"; the emoji is moved
